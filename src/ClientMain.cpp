@@ -38,11 +38,16 @@ int main(int argc, char *argv[]) {
 
   timer.Start();
   for (int i = 0; i < num_customers; i++) {
+    // client_cls serves as a customer
     auto client_cls =
         std::shared_ptr<ClientThreadClass>(new ClientThreadClass());
+    
+    // initialize a thread, this thread will execute the ThreadBody function
+    // client_cls is the instance that passed into this thread, serves as a customer
     std::thread client_thread(&ClientThreadClass::ThreadBody, client_cls, ip,
                               port, i, num_orders, request_type);
 
+    // save all the customers(client_cls) into a vector, in order to fetch their timer at the end of the execution
     client_vector.push_back(std::move(client_cls));
     thread_vector.push_back(std::move(client_thread));
   }

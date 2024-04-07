@@ -47,9 +47,12 @@ int main(int argc, char *argv[]) {
     factory.AddAdmin(id, ip, port);
   }
 
+  // Initialize an admin thread, runing forever till the end of the program
   thread_vector.push_back(
       std::thread(&LaptopFactory::AdminThread, &factory, admin_id));
 
+  // When a new message received by the server, it will create an enginner
+  // and let the engineer handle all the messages comming from the same source
   while ((new_socket = socket.Accept())) {
     std::thread engineer_thread(&LaptopFactory::EngineerThread, &factory,
                                 std::move(new_socket), engineer_cnt++);

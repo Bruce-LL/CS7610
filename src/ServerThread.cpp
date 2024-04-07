@@ -60,8 +60,10 @@ void LaptopFactory::EngineerThread(std::unique_ptr<ServerSocket> socket,
 
   stub.Init(std::move(socket));
 
+  // before sending a message, the  sends an int indentity to the engineer
+  // identity = 0 means the this engineer is talking to a client (customer)
+  // identity = 1 means the this engineer is talking to a server
   int identity = stub.ReceiveIndentity();
-  // std::cout << "Engineer " << engineer_id << " is " << identity << std::endl;
   if (identity == 0) {
     while (true) {
       request = stub.ReceiveRequest();
@@ -83,6 +85,7 @@ void LaptopFactory::EngineerThread(std::unique_ptr<ServerSocket> socket,
       }
     }
   } else if (identity == 1) { // IFA
+    // here, the engineer keeps opening to the server who tries to send message to this engineer
     while (true) {
       log_req = stub.ReceiveLogRequest();
       if (!log_req.IsValid()) {

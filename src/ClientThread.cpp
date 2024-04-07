@@ -43,6 +43,10 @@ void ClientThreadClass::Records() {
   std::cout << ss.str();
 }
 
+/**
+ * @brief invoked when request_type = 3
+ * 
+ */
 void ClientThreadClass::ScanRecords() {
   for (int i = 0; i < num_orders; i++) {
     CustomerRequest request;
