@@ -87,6 +87,11 @@ bool Socket::IsNagleOn() {
 	return (nagle_ == NAGLE_ON) ? true : false;
 }
 
+void Socket::reset() {
+	is_initialized_ = false;
+	nagle_ = NAGLE_ON;
+}
+
 void Socket::Close() {
 	shutdown(fd_, SHUT_RDWR);
 	close(fd_);

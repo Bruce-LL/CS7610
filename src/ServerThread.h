@@ -42,6 +42,7 @@ private:
   LaptopInfo CreateRegularLaptop(CustomerRequest order, int engineer_id);
   CustomerRecord CreateCustomerRecord(CustomerRequest request);
   LogRequest CreateLogRequest(MapOp op);
+  ServerConfig serverConfig;
 
   void PFA(LaptopInfo& laptop);
 

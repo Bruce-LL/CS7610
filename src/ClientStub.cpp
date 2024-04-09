@@ -7,6 +7,11 @@ ClientStub::ClientStub() {}
 
 int ClientStub::Init(std::string ip, int port) { return socket.Init(ip, port); }
 
+int ClientStub::Reconnect(std::string ip, int port) {
+  socket.reset();
+  return socket.Init(ip, port);
+}
+
 LaptopInfo ClientStub::Order(CustomerRequest order) {
   LaptopInfo info;
   char buffer[32];
@@ -19,6 +24,7 @@ LaptopInfo ClientStub::Order(CustomerRequest order) {
       info.Unmarshal(buffer);
     }
   }
+  
   return info;
 }
 
@@ -50,6 +56,29 @@ LogResponse ClientStub::BackupRecord(LogRequest log) {
     }
   }
   return resp;
+}
+
+ServerConfig ClientStub::receiveServerConfig() {
+  char header[sizeof(uint32_t)]; // Assuming the header just contains the size.
+  if (socket.Recv(header, sizeof(uint32_t), 0) <= 0) {
+    std::cout<<"failed to receive header"<<std::endl;
+  } // Receive the header first.
+   
+  uint32_t messageSize;
+  memcpy(&messageSize, header, sizeof(uint32_t));
+  messageSize = ntohl(messageSize); // Convert from network byte order if needed.  
+
+  ServerConfig serverConfig;
+  std::vector<char> buffer(messageSize); 
+  if (socket.Recv(buffer.data(), messageSize, 0)) {
+    serverConfig.Unmarshal(buffer.data());
+  } else {
+    std::cout<<"failed to receive serverConfig..."<<"size: "<<messageSize<<std::endl;
+  }
+  //std::cout<<"servres size: "<<serverConfig.getServers().size()<<std::endl;
+  //serverConfig.print();
+  
+  return serverConfig;
 }
 
 void ClientStub::Identify(int role) {

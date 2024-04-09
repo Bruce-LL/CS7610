@@ -20,6 +20,8 @@ class ClientThreadClass {
   void Records();
   void ScanRecords();
 
+  ServerConfig serverConfig;
+
 public:
   ClientThreadClass();
   void ThreadBody(std::string ip, int port, int id, int orders, int type);

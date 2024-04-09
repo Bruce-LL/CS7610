@@ -2,11 +2,19 @@
 #define __MESSAGES_H__
 
 #include <string>
+#include <iostream>
+#include <map>
+#include <string>
 
+/**
+ * @brief Customer request sent by a customer to a engineer in a server
+ *        One request contains the information of one order
+ * 
+ */
 class CustomerRequest {
 private:
   int customer_id;
-  int order_number;
+  int order_number;  // it is the orderID
   int request_type;
 
 public:
@@ -31,6 +39,10 @@ public:
   void Print();
 };
 
+/**
+ * @brief 
+ * 
+ */
 class CustomerRecord {
 private:
   int customer_id;
@@ -57,6 +69,10 @@ public:
   void Print();
 };
 
+/**
+ * @brief 
+ * 
+ */
 class LaptopInfo {
 private:
   int customer_id;
@@ -95,6 +111,11 @@ public:
   void Print();
 };
 
+
+/**
+ * @brief 
+ * 
+ */
 class MapOp {
 private:
   int opcode;
@@ -129,6 +150,10 @@ public:
   void Print();
 };
 
+/**
+ * @brief 
+ * 
+ */
 class LogRequest {
 private:
   int factory_id;
@@ -165,6 +190,11 @@ public:
   void Print();
 };
 
+
+/**
+ * @brief 
+ * 
+ */
 class LogResponse {
 private:
   int factory_id;
@@ -185,5 +215,49 @@ public:
 
   void Print();
 };
+
+
+/**
+ * @brief Wrap the serverIP and server port number in a class
+ * 
+ */
+class ServerInfo {
+  private:
+    std::string ipAddress;
+    int portNumber;
+  
+  public:
+    ServerInfo() {};
+    ServerInfo(std::string ipAddress, int portNumber);
+    std::string getIpAdress() const { return ipAddress; }
+    int getPortNumber() const { return portNumber; }
+    size_t size() const;
+    void Marshal(char *buffer) const;
+    void Unmarshal(char *buffer);
+};
+
+
+/**
+ * @brief The message contains all the servers' information in the server system
+ *        This message will be sent by an engineer when connection is first established
+ * 
+ */
+class ServerConfig {
+  private:
+    std::map<int, ServerInfo> servers;
+  
+  public:
+    ServerConfig();
+    std::map<int, ServerInfo> getServers();
+    void setServer(int serverId, ServerInfo Info);
+    size_t size() const;
+    void Marshal(char *buffer);
+    void Unmarshal(char *buffer);
+
+    void print();
+};
+
+
+
 
 #endif // #ifndef __MESSAGES_H__

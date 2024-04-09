@@ -19,6 +19,7 @@ public:
   int SendLaptop(LaptopInfo info);
   int ReturnRecord(CustomerRecord record);
   int ReceiveIndentity();
+  int SendServerConfig(ServerConfig serverConfig);
 };
 
 #endif // end of #ifndef __SERVER_STUB_H__

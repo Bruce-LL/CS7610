@@ -4,6 +4,8 @@
 
 #include <cstring>
 #include <iostream>
+#include <map>
+#include <cstdint>
 
 CustomerRequest::CustomerRequest() {
   customer_id = -1;
@@ -334,3 +336,118 @@ void LogResponse::Unmarshal(char *buffer) {
 void LogResponse::Print() {
   std::cout << "factory_id " << factory_id << std::endl;
 }
+
+/********************** ServerInfo class *************************/
+
+ServerInfo::ServerInfo(std::string ipAddress, int portNumber) {
+  this->ipAddress = ipAddress;
+  this->portNumber = portNumber;
+}
+
+size_t ServerInfo::size() const {
+    // 4 bytes for the length of the IP address, plus the length of the IP address, plus 4 bytes for the port number
+    return sizeof(uint32_t) + ipAddress.length() + sizeof(portNumber);
+}
+
+void ServerInfo::Marshal(char* buffer) const {
+  // store the length of the ipAddress length
+  uint32_t ipLength = ipAddress.length();
+  memcpy(buffer, &ipLength, sizeof(ipLength));
+  buffer += sizeof(ipLength);
+
+  memcpy(buffer, ipAddress.c_str(), ipLength);
+  buffer += ipLength;
+
+  memcpy(buffer, &portNumber, sizeof(portNumber));
+}
+
+void ServerInfo::Unmarshal(char* buffer) {
+  uint32_t ipLength = 0;
+  // read the length of the ipAddress string
+  memcpy(&ipLength, buffer, sizeof(ipLength));
+  buffer += sizeof(ipLength);
+
+  // allocate a temporary buffer for ipAddress string and copy it
+  char* tempIp = new char[ipLength + 1]; // +1 for null terminator
+  memcpy(tempIp, buffer, ipLength);
+  tempIp[ipLength] = '\0';
+  buffer += ipLength;
+
+  ipAddress = std::string(tempIp);
+  delete[] tempIp; // free the allocated memory
+
+  memcpy(&portNumber, buffer, sizeof(portNumber));
+}
+
+/********************** ServerConfig class *************************/
+ServerConfig::ServerConfig() {}
+
+std::map<int, ServerInfo> ServerConfig::getServers() {
+  return servers;
+}
+
+void ServerConfig::setServer(int serverId, ServerInfo info) {
+   this->servers.insert(std::make_pair(serverId, info));
+}
+
+size_t ServerConfig::size() const {
+  size_t totalSize = sizeof(uint32_t); // To store the number of ServerInfo objects, the number of ServerInfo objects is stored in the marshalled code
+  for (const auto& pair : servers) {
+    totalSize += sizeof(int); // for serverId
+    totalSize += pair.second.size();
+  }
+  return totalSize;
+}
+
+void ServerConfig::Marshal(char *buffer) {
+  // store the number of servers in the map
+  int32_t serverCount = htonl(servers.size());
+  memcpy(buffer, &serverCount, sizeof(serverCount));
+  buffer += sizeof(serverCount);
+
+  // Iterate over the map, marshalling each key-value pair
+  for(const auto& pair : servers) {
+    int32_t netKey = htonl(pair.first);
+    memcpy(buffer, &netKey, sizeof(netKey));
+    buffer += sizeof(netKey);
+
+    pair.second.Marshal(buffer);
+    buffer += pair.second.size();
+  }
+}
+
+void ServerConfig::Unmarshal(char *buffer) {
+  int32_t serverCount;
+  memcpy(&serverCount, buffer, sizeof(serverCount));
+  serverCount = ntohl(serverCount);
+  buffer += sizeof(serverCount);
+
+  for (int i=0; i<serverCount; i++) {
+    int32_t netKey;
+    memcpy(&netKey, buffer, sizeof(netKey));
+    int key = ntohl(netKey);
+    buffer += sizeof(netKey);
+
+    ServerInfo info;
+    info.Unmarshal(buffer);
+    buffer += info.size();
+
+    servers[key]  = info;
+  }
+
+}
+
+void ServerConfig::print() {
+  for (const auto& pair : servers) {
+    int id = pair.first;
+    ServerInfo info = pair.second;
+    std::cout<<"id: "<<id<<std::endl;
+    std::cout<<"ip: "<<info.getIpAdress()<<std::endl;
+    std::cout<<"port "<<info.getPortNumber()<<std::endl;
+  }
+}
+
+
+
+
+

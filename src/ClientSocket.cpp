@@ -7,6 +7,9 @@
 
 #include "ClientSocket.h"
 
+#include <iostream>
+
+
 int ClientSocket::Init(std::string ip, int port) {
 	if (is_initialized_) {
 		return 0;
@@ -24,10 +27,12 @@ int ClientSocket::Init(std::string ip, int port) {
 	addr.sin_port = htons(port);
 
 	if ((connect(fd_, (struct sockaddr *) &addr, sizeof(addr))) < 0) {
-		perror("ERROR: failed to connect");
+		//perror("ERROR: failed to connect");
+		std::cout<< "failed to connect" <<std::endl;
 		return 0;
 	}
 	is_initialized_ = true;
+	std::cout<<"sock initialized, "<<"fd: "<<fd_<<std::endl;
 	return 1;
 }
 

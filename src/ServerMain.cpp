@@ -4,6 +4,7 @@
 
 #include "ServerSocket.h"
 #include "ServerThread.h"
+#include "Messages.h"
 
 void usage(char *argv[]) {
   std::cout << "Usage: " << argv[0]
@@ -20,6 +21,7 @@ int main(int argc, char *argv[]) {
   LaptopFactory factory;
   std::unique_ptr<ServerSocket> new_socket;
   std::vector<std::thread> thread_vector;
+
 
   if (argc < 4) {
     usage(argv);
@@ -39,6 +41,7 @@ int main(int argc, char *argv[]) {
     std::cout << "Socket initialization failed" << std::endl;
     return 0;
   }
+  
 
   for (int i = 0; i < num_peers; i++) {
     int id = atoi(argv[4 + i * 3]);
@@ -54,6 +57,7 @@ int main(int argc, char *argv[]) {
   // When a new message received by the server, it will create an enginner
   // and let the engineer handle all the messages comming from the same source
   while ((new_socket = socket.Accept())) {
+    //std::cout<<"new connection"<<std::endl;
     std::thread engineer_thread(&LaptopFactory::EngineerThread, &factory,
                                 std::move(new_socket), engineer_cnt++);
     thread_vector.push_back(std::move(engineer_thread));

@@ -27,6 +27,10 @@ public:
 	int NagleOn(bool on_off);
 	bool IsNagleOn();
 
+	int getFd() { return fd_; }
+
+	void reset();
+
 	void Close();
 };
 

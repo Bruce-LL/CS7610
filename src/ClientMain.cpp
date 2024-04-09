@@ -44,6 +44,7 @@ int main(int argc, char *argv[]) {
     
     // initialize a thread, this thread will execute the ThreadBody function
     // client_cls is the instance that passed into this thread, serves as a customer
+    // here, argument i is the customer id
     std::thread client_thread(&ClientThreadClass::ThreadBody, client_cls, ip,
                               port, i, num_orders, request_type);
 

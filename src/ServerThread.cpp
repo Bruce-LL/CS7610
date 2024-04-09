@@ -60,14 +60,21 @@ void LaptopFactory::EngineerThread(std::unique_ptr<ServerSocket> socket,
 
   stub.Init(std::move(socket));
 
-  // before sending a message, the  sends an int indentity to the engineer
+  //std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+  stub.SendServerConfig(serverConfig);
+
+  // before sending a message, the sender sends an int identity to the engineer
   // identity = 0 means the this engineer is talking to a client (customer)
+  //              in this case, the message received is a CustomerRequest type
   // identity = 1 means the this engineer is talking to a server
+  //              in this case, the message received is a LogRequest type
   int identity = stub.ReceiveIndentity();
   if (identity == 0) {
     while (true) {
       request = stub.ReceiveRequest();
       if (!request.IsValid()) {
+        std::cout<<"request invalid"<<std::endl;
         break;
       }
       request_type = request.GetRequestType();
@@ -134,8 +141,11 @@ void LaptopFactory::PFA(LaptopInfo &laptop) {
     for (auto &admin : admin_map) {
       const ServerAddress &addr = admin.second;
       int ret = admin_stub[admin.first].Init(addr.ip, addr.port);
+      
+      // if ret==0
       if (!ret) {
-        // std::cout << "Failed to connect to admin " << admin.first << std::endl;
+        std::cout << "Failed to connect to admin (peer) " << admin.first << std::endl;
+        admin_stub.erase(admin.first);
       } else {
         admin_stub[admin.first].Identify(1);
       }
@@ -148,13 +158,19 @@ void LaptopFactory::PFA(LaptopInfo &laptop) {
   smr_log.emplace_back(op);
   last_index = smr_log.size() - 1;
 
+  // below is how the primary node sends LogRequest to all the peers.
+  // we can whipe it for now
+
   LogRequest request = CreateLogRequest(op);
+
+  // definition of admin_stub:   std::map<int, ClientStub> admin_stub;
   for (auto iter = admin_stub.begin(); iter != admin_stub.end();) {
     LogResponse resp = iter->second.BackupRecord(request);
     if (!resp.IsValid()) {
-      // std::cout << "Failed to backup record to admin " << iter->first
-      //           << std::endl;
+
+      std::cout << "Failed to backup record to admin"<<std::endl;
       iter = admin_stub.erase(iter);
+      break;
     } else {
       ++iter;
     }
@@ -186,6 +202,7 @@ void LaptopFactory::AdminThread(int id) {
 
     ul.unlock();
 
+    // send log request to all the peers
     PFA(req->laptop);
     req->laptop.SetAdminId(id);
     req->prom.set_value(req->laptop);
@@ -197,4 +214,11 @@ void LaptopFactory::AddAdmin(int id, std::string ip, int port) {
   addr.ip = ip;
   addr.port = port;
   admin_map[id] = addr;
+
+  // add the id and server information to serverConfig, which is used to send to client (customer)
+  ServerInfo server = ServerInfo(ip, port);
+  serverConfig.setServer(id, server);
+  std::cout<<"id: "<<id<<std::endl;
+  std::cout<<"ip: "<<ip<<std::endl;
+  std::cout<<"port: "<<port<<std::endl;
 }
