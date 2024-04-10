@@ -100,9 +100,9 @@ void LaptopFactory::EngineerThread(std::unique_ptr<ServerSocket> socket,
         break;
       }
 
-      if (primary_id != log_req.GetFactoryId()) {
-        primary_id = log_req.GetFactoryId();
-      }
+      // if (primary_id != log_req.GetFactoryId()) {
+      //   primary_id = log_req.GetFactoryId();
+      // }
 
       MapOp op = log_req.GetMapOp();
       smr_log.emplace_back(op);
@@ -117,6 +117,18 @@ void LaptopFactory::EngineerThread(std::unique_ptr<ServerSocket> socket,
       LogResponse resp;
       resp.SetFactoryId(factory_id);
       stub.ReturnLogResponse(resp);
+    }
+  } else if (identity==2) { // Acceptor
+    std::cout<<"Acceptor Initilizd";
+    while (true) {
+      // receive PaxosMsg
+      // if 
+      
+      // p1a (prepareMsg) receive
+      // p1b (promise or reject) send out
+
+      // p2a (acceptMsg) receive (only when giving )
+      // p2b ()
     }
   } else {
     std::cout << "Undefined identity: " << identity << std::endl;
@@ -133,9 +145,9 @@ LogRequest LaptopFactory::CreateLogRequest(MapOp op) {
 }
 
 void LaptopFactory::PFA(LaptopInfo &laptop) {
-  if (primary_id != factory_id) {
-    primary_id = factory_id;
-  }
+  // if (primary_id != factory_id) {
+  //   primary_id = factory_id;
+  // }
 
   if (!admin_stub_init) {
     for (auto &admin : admin_map) {
@@ -165,6 +177,7 @@ void LaptopFactory::PFA(LaptopInfo &laptop) {
 
   // definition of admin_stub:   std::map<int, ClientStub> admin_stub;
   for (auto iter = admin_stub.begin(); iter != admin_stub.end();) {
+    std::cout<<"hh"<<std::endl;
     LogResponse resp = iter->second.BackupRecord(request);
     if (!resp.IsValid()) {
 
@@ -185,7 +198,7 @@ void LaptopFactory::PFA(LaptopInfo &laptop) {
 void LaptopFactory::AdminThread(int id) {
   last_index = -1;
   committed_index = -1;
-  primary_id = -1;
+  //primary_id = -1;
   factory_id = id;
   admin_stub_init = false;
 

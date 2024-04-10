@@ -448,6 +448,151 @@ void ServerConfig::print() {
 }
 
 
+/********************** Command class *************************/
+Command::Command(int commandId, std::string clientIp, int customerId, int orderId) {
+  this->commandId = commandId;
+  this->clientIp = clientIp;
+  this->customerId = customerId;
+  this->orderId = orderId;
+}
+
+
+/********************** PaxosMsg class *************************/
+PaxosMsg::PaxosMsg() {
+  this->phase = -1;
+  this->agree = 0;
+  this->proposeNumber = -1;
+  this->acceptedProposal = -1;
+  this->slotNumber = -1;
+
+  this->commandId = -1;
+  this->clientIp = "000.000.000.000";
+  this->customerId = -1;
+  this->orderId = -1;
+}
+
+void PaxosMsg::Marshal(char *buffer) {
+  int net_phase = htonl(phase);
+  int net_agree = htonl(agree);
+  int net_proposeNumber = htonl(proposeNumber);
+  int net_acceptedProposal = htonl(acceptedProposal);
+  int net_slotNumber = htonl(slotNumber);
+
+  int net_commandId = htonl(commandId);
+
+  int net_ipLength = htonl(clientIp.length());
+  
+  int net_customerId = htonl(customerId);
+  int net_orderId = htonl(orderId);
+
+  memcpy(buffer, &net_phase, sizeof(net_phase));
+  buffer += sizeof(net_phase);
+  memcpy(buffer, &net_agree, sizeof(net_agree));
+  buffer += sizeof(net_agree);
+  memcpy(buffer, &net_proposeNumber, sizeof(net_proposeNumber));
+  buffer += sizeof(net_proposeNumber);
+  memcpy(buffer, &net_acceptedProposal, sizeof(net_acceptedProposal));
+  buffer += sizeof(net_acceptedProposal);
+  memcpy(buffer, &net_slotNumber, sizeof(net_slotNumber));
+  buffer += sizeof(net_slotNumber);
+  memcpy(buffer, &net_commandId, sizeof(net_commandId));
+  buffer += sizeof(net_commandId);
+  
+  memcpy(buffer, &net_ipLength, sizeof(net_ipLength));
+  buffer += sizeof(net_ipLength);
+  memcpy(buffer, clientIp.c_str(), clientIp.length());
+  buffer += clientIp.length();
+
+  memcpy(buffer, &net_customerId, sizeof(net_customerId));
+  buffer += sizeof(net_customerId);
+  memcpy(buffer, &net_orderId, sizeof(net_orderId));
+}
+
+void PaxosMsg::Unmarshal(char *buffer) {
+  int net_phase;
+  int net_agree;
+  int net_proposeNumber;
+  int net_acceptedProposal;
+  int net_slotNumber;
+  int net_commandId;
+  int net_ipLength;
+
+  int net_customerId;
+  int net_orderId;
+  
+  memcpy(&net_phase, buffer, sizeof(net_phase));
+  phase = ntohl(net_phase);
+  buffer += sizeof(net_phase);
+
+
+  memcpy(&net_agree, buffer, sizeof(net_agree));
+  agree = ntohl(net_agree);
+  buffer += sizeof(net_agree);
+
+  memcpy(&net_proposeNumber, buffer, sizeof(net_proposeNumber));
+  proposeNumber = ntohl(net_proposeNumber);
+  buffer += sizeof(net_proposeNumber);
+
+  memcpy(&net_acceptedProposal, buffer, sizeof(net_acceptedProposal));
+  acceptedProposal = ntohl(net_acceptedProposal);
+  buffer += sizeof(net_acceptedProposal);
+
+
+  memcpy(&net_slotNumber, buffer, sizeof(net_slotNumber));
+  slotNumber = ntohl(net_slotNumber);
+  buffer += sizeof(net_slotNumber);
+
+
+  memcpy(&net_commandId, buffer, sizeof(net_commandId));
+  commandId = ntohl(net_commandId);
+  buffer += sizeof(net_commandId);
+
+
+  memcpy(&net_ipLength, buffer, sizeof(net_ipLength));
+  int ipLength = ntohl(net_ipLength);
+  buffer += sizeof(net_ipLength);
+
+  char* tempIp = new char[ipLength + 1];
+  memcpy(tempIp, buffer, ipLength);
+  tempIp[ipLength] = '\0';
+  clientIp = std::string(tempIp);
+  delete[] tempIp;
+  buffer += ipLength;
+
+  memcpy(&net_customerId, buffer, sizeof(net_customerId));
+  customerId = ntohl(net_customerId);
+  buffer += sizeof(net_customerId);
+
+  memcpy(&net_orderId, buffer, sizeof(net_orderId));
+  orderId = ntohl(net_orderId);
+}
+
+Command PaxosMsg::getCommand() {
+  return Command(commandId, clientIp, customerId, orderId);
+}
+
+int PaxosMsg::size () {
+  int totalSize = 0;
+
+  totalSize += sizeof(phase);
+  totalSize += sizeof(agree);
+  totalSize += sizeof(proposeNumber);
+  totalSize += sizeof(acceptedProposal);
+  totalSize += sizeof(slotNumber);
+  totalSize += sizeof(commandId);
+  totalSize += 4; // for the length of clientIp
+  totalSize += clientIp.length();
+  totalSize += sizeof(customerId);
+  totalSize += sizeof(orderId);
+
+  return totalSize;
+}
+
+void PaxosMsg::print() {
+  std::cout<<"phase: "<<phase<<", agree: "<<agree<<", clientIp: "<<clientIp<<", customerId:"<< customerId<<", orderId"<<orderId<<std::endl;
+}
+
+
 
 
 

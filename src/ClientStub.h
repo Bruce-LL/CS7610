@@ -20,6 +20,9 @@ public:
   CustomerRecord ReadRecord(CustomerRequest order);
   LogResponse BackupRecord(LogRequest log);
   ServerConfig receiveServerConfig();
+  int sendPaxosMsg(PaxosMsg msg);
+  PaxosMsg receivePaxosMsg();
+
   void Identify(int role);
 };
 

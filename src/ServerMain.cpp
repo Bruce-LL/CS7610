@@ -51,8 +51,12 @@ int main(int argc, char *argv[]) {
   }
 
   // Initialize an admin thread, runing forever till the end of the program
+  // TODO: modify the AdminThread to ScoutThread
   thread_vector.push_back(
       std::thread(&LaptopFactory::AdminThread, &factory, admin_id));
+
+  // TODO: add and initialize a CommanderThread
+  
 
   // When a new message received by the server, it will create an enginner
   // and let the engineer handle all the messages comming from the same source

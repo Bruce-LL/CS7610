@@ -19,7 +19,9 @@ public:
   int SendLaptop(LaptopInfo info);
   int ReturnRecord(CustomerRecord record);
   int ReceiveIndentity();
-  int SendServerConfig(ServerConfig serverConfig);
+  int SendServerConfig(ServerConfig serverConfig); // send from engineer to customer
+  PaxosMsg ReceivePaxosMsg();
+  int SendPaxosMsg(PaxosMsg msg); 
 };
 
 #endif // end of #ifndef __SERVER_STUB_H__

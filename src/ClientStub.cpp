@@ -85,3 +85,19 @@ void ClientStub::Identify(int role) {
   int net_role = htonl(role);
   socket.Send((char *)&net_role, sizeof(net_role), 0);
 }
+
+
+int ClientStub::sendPaxosMsg(PaxosMsg msg) {
+  char buffer[64]; // a marshalled PaxosMsg should not exceed 51 bytes, so 64 bytes is safe
+  msg.Marshal(buffer);
+  return socket.Send(buffer, msg.size(), 0);
+}
+
+PaxosMsg ClientStub::receivePaxosMsg() {
+  PaxosMsg receivedMsg;
+  char buffer[64]; // a marshalled PaxosMsg should not exceed 51 bytes, so 64 bytes is safe
+  if (socket.Recv(buffer, receivedMsg.size(), 0)) {
+    receivedMsg.Unmarshal(buffer);
+  }
+  return receivedMsg;
+}

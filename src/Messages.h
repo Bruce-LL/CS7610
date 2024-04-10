@@ -258,6 +258,68 @@ class ServerConfig {
 };
 
 
+/**
+ * @brief A command is the conents that every replica is going to backup
+ * 
+ */
+class Command {
+  private: 
+    int commandId; // fetch time stamp by the server node
+    std::string clientIp;
+    int customerId;
+    int orderId;
+
+  public:
+    Command(int commandId, std::string clientIp, int customerId, int orderId);
+    int getCommandId() { return commandId; }
+    std::string getClientIp() { return clientIp; }
+    int getCustomerId() { return customerId; }
+    int getOrderId() { return orderId; }
+};
+
+
+/**
+ * @brief Message used for all multi-Paxos protocol phases communication
+ *        phase = 1, phase 1a, prepare(n). Scout (proposer) --> Acceptor
+          phase = 2, phase 1b, promise(n, i, v) or reject. determined by int agree. Acceptor --> Scout (proposer)
+          phase = 3. phase 2a, accept(n, v). Commander (proposer) --> Acceptor
+          phase = 4. phase 2b, agree or reject. determined by int agree. Acceptor --> Commander (proposer)
+ * 
+ * 
+ */
+class PaxosMsg {
+  private:
+    int phase;
+
+    int agree; // 0 for reject and 1 for agree
+    int proposeNumber; //grap from machine timestamp?
+    int acceptedProposal;
+    int slotNumber;
+
+    // command content, which is the 'value' in Paxos protocol
+    int commandId; // fetch time stamp by the server node
+    std::string clientIp;
+    int customerId;
+    int orderId;
+
+
+  public:
+    PaxosMsg();
+    int getPhase() { return phase; }
+
+    void Marshal(char *buffer);
+    void Unmarshal(char *buffer);
+
+    int isAgree() { return agree; }
+    
+    Command getCommand();
+
+    int size();
+
+    void print();
+};
+
+
 
 
 #endif // #ifndef __MESSAGES_H__
