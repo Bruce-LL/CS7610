@@ -56,7 +56,7 @@ private:
   int promisedProposalNumber = -1;
   int acceptedProposalNumber = -1;
   Command acceptedValue;
-  
+
   int slot_int = 1;  // the next proposal Map slot to fill
   int slot_out = 1;  // the next decision Map slot to fill
   std::map<int, Command> proposalMap;
@@ -74,6 +74,7 @@ private:
   void CommanderBrocasting();
 
 public:
+  LaptopFactory();
   void EngineerThread(std::unique_ptr<ServerSocket> socket, int id);
   void ScoutThread(int id);
   void CommanderThread(int id);

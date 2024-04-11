@@ -449,6 +449,9 @@ void ServerConfig::print() {
 
 
 /********************** Command class *************************/
+Command::Command() {
+}
+
 Command::Command(int commandId, std::string clientIp, int customerId, int orderId) {
   this->commandId = commandId;
   this->clientIp = clientIp;
@@ -556,6 +559,10 @@ void PaxosMsg::Unmarshal(char *buffer) {
 
 void PaxosMsg::setAgree(int agree) {
   this->agree = agree;
+}
+
+void PaxosMsg::setProposalNumber(int proposalNumber) {
+  this->proposeNumber = proposalNumber;
 }
 
 Command PaxosMsg::getCommand() {

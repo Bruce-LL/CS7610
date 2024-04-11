@@ -264,12 +264,13 @@ class ServerConfig {
  */
 class Command {
   private: 
-    int commandId; // fetch time stamp by the server node
-    std::string clientIp;
-    int customerId;
-    int orderId;
+    int commandId = -1; // fetch time stamp by the server node
+    std::string clientIp = "000.000.000.000";
+    int customerId = -1;
+    int orderId = -1;
 
   public:
+    Command();
     Command(int commandId, std::string clientIp, int customerId, int orderId);
     int getCommandId() { return commandId; }
     std::string getClientIp() { return clientIp; }
@@ -313,6 +314,9 @@ class PaxosMsg {
 
     int isAgree() { return agree; }
     void setAgree(int agree);
+
+    void setProposalNumber(int proposalNumber);
+    int getProposalNumber() { return proposeNumber; }
     
     Command getCommand();
 

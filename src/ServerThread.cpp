@@ -2,8 +2,14 @@
 
 #include <iostream>
 #include <memory>
+#include <algorithm>
+
 
 #include "ServerStub.h"
+
+LaptopFactory::LaptopFactory() {
+
+}
 
 LaptopInfo LaptopFactory::CreateRegularLaptop(CustomerRequest order,
                                               int engineer_id) {
@@ -29,7 +35,7 @@ LaptopInfo LaptopFactory::CreateRegularLaptop(CustomerRequest order,
   erq_cv.notify_one();
   erq_lock.unlock();
 
-  laptop = fut.get();
+  laptop = fut.get();  // this thread will wait here, until a laptopInfo is set for prom
 
   return laptop;
 }
@@ -132,7 +138,14 @@ void LaptopFactory::EngineerThread(std::unique_ptr<ServerSocket> socket,
       
       if (msg.getPhase()==1) { // p1a msg
         PaxosMsg p1bMsg = PaxosMsg(2); // p1b msg
-        p1bMsg.setAgree(1);
+        if (msg.getProposalNumber() > promisedProposalNumber) {
+          promisedProposalNumber = msg.getProposalNumber();
+          p1bMsg.setAgree(1);
+        } else {
+          p1bMsg.setAgree(0);
+          p1bMsg.setProposalNumber(promisedProposalNumber);
+        }
+        
         if (!stub.SendPaxosMsg(p1bMsg)) {
           std::cout<<"p1bMsg failed to reach proposer(scout)"<<std::endl;
         }
@@ -187,7 +200,7 @@ LogRequest LaptopFactory::CreateLogRequest(MapOp op) {
  * @param laptop 
  */
 void LaptopFactory::ScoutBrocasting(LaptopInfo &laptop) {
-  int promisedNum = 0;
+  
 
   // establish connections to all peers (including itself)
   if (!scout_acceptor_stub_init) {
@@ -216,36 +229,58 @@ void LaptopFactory::ScoutBrocasting(LaptopInfo &laptop) {
 
   LogRequest request = CreateLogRequest(op);
 
-  // definition of acceptor_stub:   std::map<int, ClientStub> acceptor_stub;
-  for (auto iter = scout_acceptor_stub.begin(); iter != scout_acceptor_stub.end();) {
-    PaxosMsg paxosMsg = PaxosMsg(1);
-    // LogResponse resp = iter->second.BackupRecord(request);
+  
 
-    // send PaxosMsg to all acceptors
-    if (!iter->second.sendPaxosMsg(paxosMsg)) {
-      std::cout << "Failed to send PaxosMsg to Acceptor, Acceptor serverId: "<<iter->first<<std::endl;
-      iter = scout_acceptor_stub.erase(iter);
-      break;
-    } else {
-      PaxosMsg p1bMsg;
-      p1bMsg = iter->second.receivePaxosMsg();
-      if (p1bMsg.isAgree()) {
-        promisedNum ++;
+  int promisedNum = 0; // number of promise collected from acceptors
+  int highestProposlNum = -1; // highest (promised) proposal number collected from acceptors
+  
+  // compete for a highest proposal number
+  // track p1a and p1b messages
+  while (true) {
+    // definition of acceptor_stub:   std::map<int, ClientStub> acceptor_stub;
+    for (auto iter = scout_acceptor_stub.begin(); iter != scout_acceptor_stub.end();) {
+      PaxosMsg paxosMsg = PaxosMsg(1);
+      paxosMsg.setProposalNumber(proposalNumber);
+      // LogResponse resp = iter->second.BackupRecord(request);
+
+      // send PaxosMsg to all acceptors
+      if (!iter->second.sendPaxosMsg(paxosMsg)) {
+        std::cout << "Failed to send PaxosMsg to Acceptor, Acceptor serverId: "<<iter->first<<std::endl;
+        iter = scout_acceptor_stub.erase(iter);
+        break;
+      } else {
+        PaxosMsg p1bMsg;
+        p1bMsg = iter->second.receivePaxosMsg();
+        highestProposlNum = std::max(highestProposlNum, p1bMsg.getProposalNumber());
+              
+        if (p1bMsg.isAgree()) {
+          promisedNum ++;
+        }
+        ++iter;
       }
-      ++iter;
+    }
+
+    if (promisedNum <= numOfAcceptors/2) { 
+      // if got rejected, use a larger proposalNumber to complete again
+      proposalNumber = highestProposlNum + 1;
+      continue;
+    } else {  // majority of acceptors primised
+      break;
     }
   }
+  // by now, we got a proposalNumber which is the highest in the system at the moment
   
-  if (promisedNum > numOfAcceptors/2) { // majority of acceptors primised
-    // for temp use
-    std::unique_ptr<ClientRequest> req =
-      std::unique_ptr<ClientRequest>(new ClientRequest);
+  std::unique_ptr<ClientRequest> req =
+        std::unique_ptr<ClientRequest>(new ClientRequest);
 
-    ph2q_lock.lock();
-    ph2q.push(std::move(req));
-    ph2q_cv.notify_one();
-    ph2q_lock.unlock();
-  }
+  ph2q_lock.lock();
+  ph2q.push(std::move(req));
+  ph2q_cv.notify_one();
+  ph2q_lock.unlock();
+  
+  std::cout<<"proposalNumber: "<<proposalNumber<<std::endl;
+  
+  
 
   {
     std::lock_guard<std::mutex> lock(cr_lock);
@@ -294,9 +329,6 @@ void LaptopFactory::CommanderBrocasting(){
     }
   }
   std::cout<<"Accepted Number: "<<acceptedNumber<<std::endl;
-
-
-
 }
 
 void LaptopFactory::ScoutThread(int id) {
@@ -317,8 +349,6 @@ void LaptopFactory::ScoutThread(int id) {
       erq_cv.wait(ul, [this] { return !erq.empty(); });
     }
 
-    
-
     auto req = std::move(erq.front());
     erq.pop();
 
@@ -328,6 +358,7 @@ void LaptopFactory::ScoutThread(int id) {
 
     // send log request to all the peers
     ScoutBrocasting(req->laptop);
+
     req->laptop.SetAdminId(id);
     req->prom.set_value(req->laptop);
   }
