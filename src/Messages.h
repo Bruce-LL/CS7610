@@ -289,28 +289,30 @@ class Command {
  */
 class PaxosMsg {
   private:
-    int phase;
+    int phase = -1;
 
-    int agree; // 0 for reject and 1 for agree
-    int proposeNumber; //grap from machine timestamp?
-    int acceptedProposal;
-    int slotNumber;
+    int agree = 0; // 0 for reject and 1 for agree
+    int proposeNumber = -1; //grap from machine timestamp?
+    int acceptedProposal = -1;
+    int slotNumber = -1;
 
     // command content, which is the 'value' in Paxos protocol
-    int commandId; // fetch time stamp by the server node
-    std::string clientIp;
-    int customerId;
-    int orderId;
+    int commandId = -1; // fetch time stamp by the server node
+    std::string clientIp = "000.000.000.000";
+    int customerId = -1;
+    int orderId = -1;
 
 
   public:
-    PaxosMsg();
+    PaxosMsg() { }
+    PaxosMsg(int phase);
     int getPhase() { return phase; }
 
     void Marshal(char *buffer);
     void Unmarshal(char *buffer);
 
     int isAgree() { return agree; }
+    void setAgree(int agree);
     
     Command getCommand();
 

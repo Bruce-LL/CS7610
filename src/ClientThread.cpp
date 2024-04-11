@@ -40,12 +40,10 @@ void ClientThreadClass::Orders() {
           std::cout << "Thread " << customer_id << " failed to connect" << std::endl;
           continue;
         }
-
-        //std::cout << "Reconnected, customer_id: " <<customer_id << std::endl;
-
+        
+        stub.Identify(0);
         serverConfig = stub.receiveServerConfig();
         serverConfig.print();
-        stub.Identify(0);
         goto continue_outer;
       }
 
@@ -107,14 +105,9 @@ void ClientThreadClass::ThreadBody(std::string ip, int port, int id, int orders,
     return;
   }
 
-  // seems here something is wrong
-  serverConfig = stub.receiveServerConfig();
-  //std::cout<<"servres size: "<<serverConfig.getServers().size()<<std::endl;
-  serverConfig.print();
-  //std::cout<<"ipAdd: "<<serverConfig.getServers()[1].getIpAdress()<<std::endl;
-  //std::cout<<"port: "<<serverConfig.getServers().at(1).getPortNumber()<<std::endl;
-
   stub.Identify(0);
+  serverConfig = stub.receiveServerConfig();
+  serverConfig.print();
   if (request_type == 1) {
     Orders();
   } else if (request_type == 2) {

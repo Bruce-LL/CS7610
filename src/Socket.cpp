@@ -14,6 +14,7 @@
 #include <netinet/tcp.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
+#include <fcntl.h>
 
 Socket::Socket() : is_initialized_(false), nagle_(NAGLE_ON) { }
 
@@ -86,6 +87,8 @@ int Socket::NagleOn(bool on_off) {
 bool Socket::IsNagleOn() {
 	return (nagle_ == NAGLE_ON) ? true : false;
 }
+
+
 
 void Socket::reset() {
 	is_initialized_ = false;

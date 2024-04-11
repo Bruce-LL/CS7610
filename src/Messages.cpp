@@ -458,17 +458,8 @@ Command::Command(int commandId, std::string clientIp, int customerId, int orderI
 
 
 /********************** PaxosMsg class *************************/
-PaxosMsg::PaxosMsg() {
-  this->phase = -1;
-  this->agree = 0;
-  this->proposeNumber = -1;
-  this->acceptedProposal = -1;
-  this->slotNumber = -1;
-
-  this->commandId = -1;
-  this->clientIp = "000.000.000.000";
-  this->customerId = -1;
-  this->orderId = -1;
+PaxosMsg::PaxosMsg(int phase) {
+  this->phase = phase;
 }
 
 void PaxosMsg::Marshal(char *buffer) {
@@ -523,12 +514,11 @@ void PaxosMsg::Unmarshal(char *buffer) {
   memcpy(&net_phase, buffer, sizeof(net_phase));
   phase = ntohl(net_phase);
   buffer += sizeof(net_phase);
-
-
+  
   memcpy(&net_agree, buffer, sizeof(net_agree));
   agree = ntohl(net_agree);
   buffer += sizeof(net_agree);
-
+  
   memcpy(&net_proposeNumber, buffer, sizeof(net_proposeNumber));
   proposeNumber = ntohl(net_proposeNumber);
   buffer += sizeof(net_proposeNumber);
@@ -537,34 +527,35 @@ void PaxosMsg::Unmarshal(char *buffer) {
   acceptedProposal = ntohl(net_acceptedProposal);
   buffer += sizeof(net_acceptedProposal);
 
-
   memcpy(&net_slotNumber, buffer, sizeof(net_slotNumber));
   slotNumber = ntohl(net_slotNumber);
   buffer += sizeof(net_slotNumber);
-
 
   memcpy(&net_commandId, buffer, sizeof(net_commandId));
   commandId = ntohl(net_commandId);
   buffer += sizeof(net_commandId);
 
-
   memcpy(&net_ipLength, buffer, sizeof(net_ipLength));
   int ipLength = ntohl(net_ipLength);
   buffer += sizeof(net_ipLength);
-
+  
   char* tempIp = new char[ipLength + 1];
   memcpy(tempIp, buffer, ipLength);
   tempIp[ipLength] = '\0';
   clientIp = std::string(tempIp);
   delete[] tempIp;
   buffer += ipLength;
-
+  
   memcpy(&net_customerId, buffer, sizeof(net_customerId));
   customerId = ntohl(net_customerId);
   buffer += sizeof(net_customerId);
-
+  
   memcpy(&net_orderId, buffer, sizeof(net_orderId));
   orderId = ntohl(net_orderId);
+}
+
+void PaxosMsg::setAgree(int agree) {
+  this->agree = agree;
 }
 
 Command PaxosMsg::getCommand() {

@@ -5,6 +5,7 @@
 #include "ServerSocket.h"
 #include "ServerThread.h"
 #include "Messages.h"
+#include "Utilities.h"
 
 void usage(char *argv[]) {
   std::cout << "Usage: " << argv[0]
@@ -15,7 +16,7 @@ void usage(char *argv[]) {
 int main(int argc, char *argv[]) {
   int port;
   int engineer_cnt = 0;
-  int admin_id = -1;
+  int serverId = -1;
   int num_peers = 0;
   ServerSocket socket;
   LaptopFactory factory;
@@ -29,7 +30,7 @@ int main(int argc, char *argv[]) {
   }
 
   port = atoi(argv[1]);
-  admin_id = atoi(argv[2]);
+  serverId = atoi(argv[2]);
   num_peers = atoi(argv[3]);
 
   if (argc < 4 + num_peers * 3) {
@@ -41,22 +42,27 @@ int main(int argc, char *argv[]) {
     std::cout << "Socket initialization failed" << std::endl;
     return 0;
   }
-  
 
+  factory.AddAcceptor(serverId, "127.0.0.1", port);
+
+  // add peers's information as a Acceptors
   for (int i = 0; i < num_peers; i++) {
     int id = atoi(argv[4 + i * 3]);
     std::string ip = argv[5 + i * 3];
     int port = atoi(argv[6 + i * 3]);
-    factory.AddAdmin(id, ip, port);
+    factory.AddAcceptor(id, ip, port);
   }
 
-  // Initialize an admin thread, runing forever till the end of the program
-  // TODO: modify the AdminThread to ScoutThread
+  // Initialize an Scout thread, runing forever till the end of the program
+  // Scout is the first part of a proposer, handling p1a and p1b messages
   thread_vector.push_back(
-      std::thread(&LaptopFactory::AdminThread, &factory, admin_id));
+      std::thread(&LaptopFactory::ScoutThread, &factory, serverId));
 
-  // TODO: add and initialize a CommanderThread
-  
+  // Initialize an Commander thread, runing forever till the end of the program
+  // Commander is the second part of a propser, handling p2a and p2b messages, then send learn messages out
+  thread_vector.push_back(
+      std::thread(&LaptopFactory::CommanderThread, &factory, serverId));
+
 
   // When a new message received by the server, it will create an enginner
   // and let the engineer handle all the messages comming from the same source

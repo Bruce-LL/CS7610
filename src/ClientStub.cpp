@@ -95,7 +95,7 @@ int ClientStub::sendPaxosMsg(PaxosMsg msg) {
 
 PaxosMsg ClientStub::receivePaxosMsg() {
   PaxosMsg receivedMsg;
-  char buffer[64]; // a marshalled PaxosMsg should not exceed 51 bytes, so 64 bytes is safe
+  char buffer[64]; // A PaxosMsg should not exceed 51 bytes. 64 bytes should be save for it
   if (socket.Recv(buffer, receivedMsg.size(), 0)) {
     receivedMsg.Unmarshal(buffer);
   }

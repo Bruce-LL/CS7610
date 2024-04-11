@@ -70,8 +70,7 @@ int ServerStub::ReturnLogResponse(LogResponse response) {
 PaxosMsg ServerStub::ReceivePaxosMsg() {
   PaxosMsg receivedMsg;
   char buffer[64]; // A PaxosMsg should not exceed 51 bytes. 64 bytes should be save for it
-  int size = receivedMsg.size();
-  if (socket->Recv(buffer, size, 0)) {
+  if (socket->Recv(buffer, receivedMsg.size(), 0)) {
     receivedMsg.Unmarshal(buffer);
   }
   return receivedMsg;
@@ -82,3 +81,4 @@ int ServerStub::SendPaxosMsg(PaxosMsg msg) {
   msg.Marshal(buffer);
   return socket->Send(buffer, msg.size(), 0);
 }
+

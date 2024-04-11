@@ -12,13 +12,17 @@ LaptopInfo LaptopFactory::CreateRegularLaptop(CustomerRequest order,
   laptop.SetEngineerId(engineer_id);
   laptop.SetAdminId(-1);
 
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
+
   std::promise<LaptopInfo> prom;
   std::future<LaptopInfo> fut = prom.get_future();
 
-  std::unique_ptr<AdminRequest> req =
-      std::unique_ptr<AdminRequest>(new AdminRequest);
+  std::unique_ptr<ClientRequest> req =
+      std::unique_ptr<ClientRequest>(new ClientRequest);
   req->laptop = laptop;
   req->prom = std::move(prom);
+  
 
   erq_lock.lock();
   erq.push(std::move(req));
@@ -59,18 +63,17 @@ void LaptopFactory::EngineerThread(std::unique_ptr<ServerSocket> socket,
   ServerStub stub;
 
   stub.Init(std::move(socket));
-
-  //std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-  stub.SendServerConfig(serverConfig);
-
+  
   // before sending a message, the sender sends an int identity to the engineer
-  // identity = 0 means the this engineer is talking to a client (customer)
+  // identity = 0 means that this engineer is talking to a client (customer)
   //              in this case, the message received is a CustomerRequest type
-  // identity = 1 means the this engineer is talking to a server
+  // identity = 1 means that this engineer is talking to a server
   //              in this case, the message received is a LogRequest type
+  // identity = 2 means that this engineer is an Acceptor, receving PaxosMsg from and sending PaxosMsg to Scout or Commander
+  //              in this case, this engineer receives PaxosMsg from and sends PaxosMsg to Scout or Commander
   int identity = stub.ReceiveIndentity();
-  if (identity == 0) {
+  if (identity == 0) { // talking with customer (client)
+    stub.SendServerConfig(serverConfig);
     while (true) {
       request = stub.ReceiveRequest();
       if (!request.IsValid()) {
@@ -118,17 +121,51 @@ void LaptopFactory::EngineerThread(std::unique_ptr<ServerSocket> socket,
       resp.SetFactoryId(factory_id);
       stub.ReturnLogResponse(resp);
     }
-  } else if (identity==2) { // Acceptor
-    std::cout<<"Acceptor Initilizd";
+  } else if (identity==2) { // Acceptor, contacting with Scout
+    std::cout<<"Acceptor-Scout connection Initilizd";
     while (true) {
+      PaxosMsg msg = stub.ReceivePaxosMsg();
+      if (msg.getPhase()<0) { //this will happen when scout's process shut down
+        std::cout << "Lost Contact with proposer(scout)" << std::endl;
+        break;
+      }
+      
+      if (msg.getPhase()==1) { // p1a msg
+        PaxosMsg p1bMsg = PaxosMsg(2); // p1b msg
+        p1bMsg.setAgree(1);
+        if (!stub.SendPaxosMsg(p1bMsg)) {
+          std::cout<<"p1bMsg failed to reach proposer(scout)"<<std::endl;
+        }
+      } else {
+        std::cout<<"unknown phase";
+      }
       // receive PaxosMsg
       // if 
-      
+
       // p1a (prepareMsg) receive
       // p1b (promise or reject) send out
 
       // p2a (acceptMsg) receive (only when giving )
       // p2b ()
+    }
+  } else if (identity==3){ // Acceptor/ learner, contacting with Commander
+    std::cout<<"Acceptor-Scout connection Initilizd";
+    while (true) {
+      PaxosMsg msg = stub.ReceivePaxosMsg(); // p2a message
+      if (msg.getPhase()<0) { // this will happen when commander's process shut down
+        std::cout << "Lost Contact with proposer(commander)" << std::endl;
+        break;
+      }
+
+      if (msg.getPhase()==3) { // p2a msg
+        PaxosMsg p1bMsg = PaxosMsg(4); // p1b msg
+        p1bMsg.setAgree(1);
+        if (!stub.SendPaxosMsg(p1bMsg)) {
+          std::cout<<"p2bMsg failed to reach proposer(commander)"<<std::endl;
+        }
+      } else {
+        std::cout<<"unknown phase";
+      }
     }
   } else {
     std::cout << "Undefined identity: " << identity << std::endl;
@@ -144,25 +181,29 @@ LogRequest LaptopFactory::CreateLogRequest(MapOp op) {
   return request;
 }
 
-void LaptopFactory::PFA(LaptopInfo &laptop) {
-  // if (primary_id != factory_id) {
-  //   primary_id = factory_id;
-  // }
+/**
+ * @brief Send out p1a massage, receive p1b message. If majority of acceptors give promise, put a p2 request to commander
+ * 
+ * @param laptop 
+ */
+void LaptopFactory::ScoutBrocasting(LaptopInfo &laptop) {
+  int promisedNum = 0;
 
-  if (!admin_stub_init) {
-    for (auto &admin : admin_map) {
-      const ServerAddress &addr = admin.second;
-      int ret = admin_stub[admin.first].Init(addr.ip, addr.port);
+  // establish connections to all peers (including itself)
+  if (!scout_acceptor_stub_init) {
+    for (auto &acceptor : acceptor_map) {
+      const ServerAddress &addr = acceptor.second;
+      int ret = scout_acceptor_stub[acceptor.first].Init(addr.ip, addr.port);
       
       // if ret==0
       if (!ret) {
-        std::cout << "Failed to connect to admin (peer) " << admin.first << std::endl;
-        admin_stub.erase(admin.first);
+        std::cout << "Failed to connect to admin (peer) " << acceptor.first << std::endl;
+        scout_acceptor_stub.erase(acceptor.first);
       } else {
-        admin_stub[admin.first].Identify(1);
+        scout_acceptor_stub[acceptor.first].Identify(2);
       }
     }
-    admin_stub_init = true;
+    scout_acceptor_stub_init = true;
   }
 
   MapOp op;
@@ -175,58 +216,149 @@ void LaptopFactory::PFA(LaptopInfo &laptop) {
 
   LogRequest request = CreateLogRequest(op);
 
-  // definition of admin_stub:   std::map<int, ClientStub> admin_stub;
-  for (auto iter = admin_stub.begin(); iter != admin_stub.end();) {
-    std::cout<<"hh"<<std::endl;
-    LogResponse resp = iter->second.BackupRecord(request);
-    if (!resp.IsValid()) {
+  // definition of acceptor_stub:   std::map<int, ClientStub> acceptor_stub;
+  for (auto iter = scout_acceptor_stub.begin(); iter != scout_acceptor_stub.end();) {
+    PaxosMsg paxosMsg = PaxosMsg(1);
+    // LogResponse resp = iter->second.BackupRecord(request);
 
-      std::cout << "Failed to backup record to admin"<<std::endl;
-      iter = admin_stub.erase(iter);
+    // send PaxosMsg to all acceptors
+    if (!iter->second.sendPaxosMsg(paxosMsg)) {
+      std::cout << "Failed to send PaxosMsg to Acceptor, Acceptor serverId: "<<iter->first<<std::endl;
+      iter = scout_acceptor_stub.erase(iter);
       break;
     } else {
+      PaxosMsg p1bMsg;
+      p1bMsg = iter->second.receivePaxosMsg();
+      if (p1bMsg.isAgree()) {
+        promisedNum ++;
+      }
       ++iter;
     }
   }
+  
+  if (promisedNum > numOfAcceptors/2) { // majority of acceptors primised
+    // for temp use
+    std::unique_ptr<ClientRequest> req =
+      std::unique_ptr<ClientRequest>(new ClientRequest);
+
+    ph2q_lock.lock();
+    ph2q.push(std::move(req));
+    ph2q_cv.notify_one();
+    ph2q_lock.unlock();
+  }
+
   {
     std::lock_guard<std::mutex> lock(cr_lock);
     customer_record[laptop.GetCustomerId()] = laptop.GetOrderNumber();
   }
-  committed_index = last_index;
+  //committed_index = last_index;
 }
 
-void LaptopFactory::AdminThread(int id) {
+void LaptopFactory::CommanderBrocasting(){
+  int acceptedNumber = 0;
+
+  // first, establish connections between this commander and all acceptors
+  // if the connection has already been created, skip this step
+  if (!commander_acceptor_stub_init) {
+    for (auto &acceptor : acceptor_map) {
+      const ServerAddress &addr = acceptor.second;
+      int ret = commander_acceptor_stub[acceptor.first].Init(addr.ip, addr.port);
+      
+      // if ret==0
+      if (!ret) {
+        std::cout << "Failed to connect to acceptor" << acceptor.first << std::endl;
+        commander_acceptor_stub.erase(acceptor.first);
+      } else {
+        commander_acceptor_stub[acceptor.first].Identify(3);
+      }
+    }
+    commander_acceptor_stub_init = true;
+  }
+
+  for (auto iter = commander_acceptor_stub.begin(); iter != commander_acceptor_stub.end();) {
+    PaxosMsg paxosMsg = PaxosMsg(3);
+    // LogResponse resp = iter->second.BackupRecord(request);
+
+    // send PaxosMsg to all acceptors
+    if (!iter->second.sendPaxosMsg(paxosMsg)) {
+      std::cout << "Failed to send PaxosMsg to Acceptor, Acceptor serverId: "<<iter->first<<std::endl;
+      iter = commander_acceptor_stub.erase(iter);
+      break;
+    } else {
+      PaxosMsg p2bMsg;
+      p2bMsg = iter->second.receivePaxosMsg();
+      if (p2bMsg.isAgree()) {
+        acceptedNumber ++;
+      }
+      ++iter;
+    }
+  }
+  std::cout<<"Accepted Number: "<<acceptedNumber<<std::endl;
+
+
+
+}
+
+void LaptopFactory::ScoutThread(int id) {
   last_index = -1;
   committed_index = -1;
   //primary_id = -1;
   factory_id = id;
-  admin_stub_init = false;
+  scout_acceptor_stub_init = false;
 
   std::unique_lock<std::mutex> ul(erq_lock, std::defer_lock);
   while (true) {
+    std::cout<<"scout running"<<std::endl;
+
+    // get a task from queue
     ul.lock();
 
     if (erq.empty()) {
       erq_cv.wait(ul, [this] { return !erq.empty(); });
     }
 
+    
+
     auto req = std::move(erq.front());
     erq.pop();
 
     ul.unlock();
+    // task is got from the queue
+
 
     // send log request to all the peers
-    PFA(req->laptop);
+    
     req->laptop.SetAdminId(id);
     req->prom.set_value(req->laptop);
   }
 }
 
-void LaptopFactory::AddAdmin(int id, std::string ip, int port) {
+void LaptopFactory::CommanderThread(int id) {
+    
+    commander_acceptor_stub_init = false;
+
+    std::unique_lock<std::mutex> ul(ph2q_lock, std::defer_lock);
+    while (true) {
+      ul.lock();
+      if (ph2q.empty()) {
+        ph2q_cv.wait(ul, [this] { return !ph2q.empty(); });
+      }
+
+      auto ph2Req = std::move(ph2q.front());
+      ph2q.pop();
+
+      ul.unlock();
+      
+      CommanderBrocasting();
+      // do something with the ph2Req
+    }
+}
+
+void LaptopFactory::AddAcceptor(int id, std::string ip, int port) {
   ServerAddress addr;
   addr.ip = ip;
   addr.port = port;
-  admin_map[id] = addr;
+  acceptor_map[id] = addr;
 
   // add the id and server information to serverConfig, which is used to send to client (customer)
   ServerInfo server = ServerInfo(ip, port);
@@ -234,4 +366,6 @@ void LaptopFactory::AddAdmin(int id, std::string ip, int port) {
   std::cout<<"id: "<<id<<std::endl;
   std::cout<<"ip: "<<ip<<std::endl;
   std::cout<<"port: "<<port<<std::endl;
+
+  numOfAcceptors ++;
 }
