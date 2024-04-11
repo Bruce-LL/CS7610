@@ -327,7 +327,7 @@ void LaptopFactory::ScoutThread(int id) {
 
 
     // send log request to all the peers
-    
+    ScoutBrocasting(req->laptop);
     req->laptop.SetAdminId(id);
     req->prom.set_value(req->laptop);
   }
