@@ -473,6 +473,10 @@ void Command::setCommandId(int commandId) {
   this->commandId = commandId;
 }
 
+void Command::setClientIp (int ClientIp){
+  this->clientIp = ClientIp;
+};
+
 void Command::print() {;
   std::cout<<"slot: "<<slot;
   std::cout<<", Command Id: "<<commandId;

@@ -275,12 +275,13 @@ class Command {
     Command(LaptopInfo &laptop);
     Command(int slot, int commandId, std::string clientIp, int customerId, int orderId);
     void setSlot(int slot);
-    int getSlot() { return slot; }
-    void setCommandId(int CommandId);
-    int getCommandId() { return commandId; }
-    std::string getClientIp() { return clientIp; }
-    int getCustomerId() { return customerId; }
-    int getOrderId() { return orderId; }
+    int getSlot() const{ return slot; }
+    void setCommandId (int CommandId);
+    int getCommandId() const{ return commandId; }
+    std::string getClientIp() const{ return clientIp; }
+    void setClientIp (int ClientIp);
+    int getCustomerId() const{ return customerId; }
+    int getOrderId() const{ return orderId; }
 
     void print();
 };
