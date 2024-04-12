@@ -203,9 +203,13 @@ void LaptopFactory::Learn(Command cmd) {
   // if slot_out in decisionMap keyset
   while (decisionMap.find(slot_out) != decisionMap.end()){
     // TODO: commit the decision, now just print it out, what else can we do?
-    // TODO: store it into local
+    
     decisionMap[slot_out].print();
     slot_out ++;
+
+    // store it into local with factory_id as file name
+    std::string filename = std::to_string(factory_id) + " FactoryLog.txt"; // Construct filename
+    saveCommandToFile(slot_out, cmd, filename);
   }
 
 }

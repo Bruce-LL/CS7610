@@ -114,7 +114,7 @@ $(CMN_OBJS): $(CMN_SRCS) $(CMN_HDRS)
 # which include .o files and the compiled binary.
 
 clean:
-	rm -rf *.o $(TARGET)
+	rm -rf *.o $(TARGET) *.txt
 
 # This indicates "clean" is not a target file to build but rather a
 # special command.
