@@ -40,9 +40,9 @@ private:
 
   std::map<int, ServerAddress> acceptor_map;
   bool scout_acceptor_stub_init;
-  bool commander_acceptor_stub_init;
+  bool commander_learner_stub_init;
   std::map<int, ClientStub> scout_acceptor_stub; 
-  std::map<int, ClientStub> commander_acceptor_stub; 
+  std::map<int, ClientStub> commander_learner_stub; 
   std::vector<MapOp> smr_log;
 
   int last_index;
@@ -55,11 +55,20 @@ private:
   int proposalNumber = 0;
   int promisedProposalNumber = -1;
   int acceptedProposalNumber = -1;
+
+  std::mutex av_lock;
   Command acceptedValue;
 
-  int slot_int = 1;  // the next proposal Map slot to fill
+  std::mutex slot_in_lock;
+  int slot_in = 1;  // the next proposal Map slot to fill
+
+  std::mutex slot_out_lock;
   int slot_out = 1;  // the next decision Map slot to fill
+
+  std::mutex proposalMap_lock;
   std::map<int, Command> proposalMap;
+  
+  std::mutex decisionMap_lock;
   std::map<int, Command> decisionMap;
   
 
@@ -71,13 +80,14 @@ private:
   ServerConfig serverConfig;
 
   void ScoutBrocasting(LaptopInfo& laptop);
-  void CommanderBrocasting();
-
+  void CommanderBrocasting(Command cmd);
+  int AcceptPhaseBrocasting(Command cmd);
+  void Learn(Command cmd);
 public:
   LaptopFactory();
   void EngineerThread(std::unique_ptr<ServerSocket> socket, int id);
   void ScoutThread(int id);
-  void CommanderThread(int id);
+  //void CommanderThread(int id);
   void AddAcceptor(int id, std::string ip, int port);
 };
 

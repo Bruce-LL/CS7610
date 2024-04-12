@@ -3,6 +3,7 @@
 
 #include <string>
 
-std::string getLocalIp();
+
+int generateCommandID(int serverID);
 
 #endif // end of #ifndef __UTILITISE_H__

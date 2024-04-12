@@ -452,13 +452,34 @@ void ServerConfig::print() {
 Command::Command() {
 }
 
-Command::Command(int commandId, std::string clientIp, int customerId, int orderId) {
+Command::Command(LaptopInfo &laptop) {
+  this->customerId = laptop.GetCustomerId();
+  this->orderId = laptop.GetOrderNumber();
+}
+
+Command::Command(int slot, int commandId, std::string clientIp, int customerId, int orderId) {
+  this->slot = slot;
   this->commandId = commandId;
   this->clientIp = clientIp;
   this->customerId = customerId;
   this->orderId = orderId;
 }
 
+void Command::setSlot(int slot) {
+  this->slot = slot;
+}
+
+void Command::setCommandId(int commandId) {
+  this->commandId = commandId;
+}
+
+void Command::print() {;
+  std::cout<<"slot: "<<slot;
+  std::cout<<", Command Id: "<<commandId;
+  std::cout<<", clientIp: "<<"xxx";
+  std::cout<<", customerId: "<<customerId;
+  std::cout<<", orderId: "<<orderId<<std::endl;
+}
 
 /********************** PaxosMsg class *************************/
 PaxosMsg::PaxosMsg(int phase) {
@@ -565,8 +586,20 @@ void PaxosMsg::setProposalNumber(int proposalNumber) {
   this->proposeNumber = proposalNumber;
 }
 
+void PaxosMsg::setAcceptedProposal(int acceptedProposal) {
+  this->acceptedProposal = acceptedProposal;
+}
+
+void PaxosMsg::setCommand(Command cmd) {
+  this->slotNumber = cmd.getSlot();
+  this->commandId = cmd.getCommandId();
+  this->clientIp = cmd.getClientIp();
+  this->customerId = cmd.getCustomerId();
+  this->orderId = cmd.getOrderId();
+}
+
 Command PaxosMsg::getCommand() {
-  return Command(commandId, clientIp, customerId, orderId);
+  return Command(slotNumber, commandId, clientIp, customerId, orderId);
 }
 
 int PaxosMsg::size () {

@@ -30,9 +30,10 @@ int main(int argc, char *argv[]) {
   }
 
   port = atoi(argv[1]);
-  serverId = atoi(argv[2]);
+  serverId = atoi(argv[2]); // serverID cannot be larger than 9
   num_peers = atoi(argv[3]);
 
+  
   if (argc < 4 + num_peers * 3) {
     usage(argv);
     return 0;
@@ -43,6 +44,7 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
+  // add this sever itself as an acceptor
   factory.AddAcceptor(serverId, "127.0.0.1", port);
 
   // add peers's information as a Acceptors
@@ -60,8 +62,8 @@ int main(int argc, char *argv[]) {
 
   // Initialize an Commander thread, runing forever till the end of the program
   // Commander is the second part of a propser, handling p2a and p2b messages, then send learn messages out
-  thread_vector.push_back(
-      std::thread(&LaptopFactory::CommanderThread, &factory, serverId));
+  // thread_vector.push_back(
+  //     std::thread(&LaptopFactory::CommanderThread, &factory, serverId));
 
 
   // When a new message received by the server, it will create an enginner

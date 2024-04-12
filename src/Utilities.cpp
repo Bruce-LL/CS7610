@@ -4,28 +4,24 @@
 #include <arpa/inet.h>
 #include <string>
 
-std::string getLocalIp() {
-    struct ifaddrs *ifAddrStruct = nullptr, *ifa = nullptr;
-    char addressBuffer[INET_ADDRSTRLEN] = {0};
+#include <chrono>
+#include <sstream>
 
-    if (getifaddrs(&ifAddrStruct) == -1) {
-        perror("getifaddrs");
-        return "";
+int generateCommandID(int serverID) {
+    auto now = std::chrono::system_clock::now();
+    auto epoch = now.time_since_epoch();
+    auto value = std::chrono::duration_cast<std::chrono::milliseconds>(epoch);
+    // Get the duration value in milliseconds
+    long long milliseconds = value.count();
+
+    // Convert milliseconds to string
+    std::ostringstream oss;
+    oss << milliseconds;
+    std::string milliseconds_str = oss.str();
+
+    if (milliseconds_str.length() > 8) {
+        milliseconds_str = milliseconds_str.substr(milliseconds_str.length() - 8);
     }
 
-    for (ifa = ifAddrStruct; ifa != nullptr; ifa = ifa->ifa_next) {
-        if (ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_INET) { // Check for IPv4
-            // Avoid loopback addresses
-            const struct sockaddr_in *addr = (const struct sockaddr_in *)ifa->ifa_addr;
-            if (addr->sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
-                continue;
-            }
-            inet_ntop(AF_INET, &addr->sin_addr, addressBuffer, sizeof(addressBuffer));
-            freeifaddrs(ifAddrStruct); // Clean up memory
-            return std::string(addressBuffer); // Return the first non-loopback IPv4 address
-        }
-    }
-
-    freeifaddrs(ifAddrStruct); // Clean up memory
-    return ""; // Return empty string if no non-loopback address was found
+    return (10 + serverID) * 10000000 + std::stoi(milliseconds_str);
 }
