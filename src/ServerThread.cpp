@@ -206,11 +206,12 @@ void LaptopFactory::Learn(Command cmd) {
     // TODO: commit the decision, now just print it out, what else can we do?
     
     decisionMap[slot_out].print();
-    slot_out ++;
 
     // store it into local with factory_id as file name
     std::string filename = std::to_string(factory_id) + " FactoryLog.txt"; // Construct filename
     saveCommandToFile(slot_out, cmd, filename);
+
+    slot_out ++;
   }
 
 }
