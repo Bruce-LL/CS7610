@@ -129,7 +129,7 @@ void LaptopFactory::EngineerThread(std::unique_ptr<ServerSocket> socket,
       stub.ReturnLogResponse(resp);
     }
   } else if (identity==2) { // Acceptor, contacting with Scout
-    std::cout<<"Acceptor-Scout connection Initilizd";
+    std::cout<<"Acceptor-Scout connection Initilizd"<<std::endl;
     while (true) {
       PaxosMsg msg = stub.ReceivePaxosMsg();
       if (msg.getPhase()<0) { //this will happen when scout's process shut down
@@ -154,6 +154,7 @@ void LaptopFactory::EngineerThread(std::unique_ptr<ServerSocket> socket,
           p1bMsg.setProposalNumber(promisedProposalNumber);
         }
         
+        // send p1b Msg back to scout
         if (!stub.SendPaxosMsg(p1bMsg)) {
           std::cout<<"p1bMsg failed to reach proposer(scout)"<<std::endl;
         }
@@ -176,7 +177,7 @@ void LaptopFactory::EngineerThread(std::unique_ptr<ServerSocket> socket,
       }
     }
   } else if (identity==3){ // learner, contacting with Commander
-    std::cout<<"Learner-Commander connection Initilizd";
+    std::cout<<"Learner-Commander connection Initilizd"<<std::endl;
     while (true) {
       PaxosMsg msg = stub.ReceivePaxosMsg(); // should be a learn message
       if (msg.getPhase()<0) { //this will happen when commander's process shut down
@@ -269,12 +270,17 @@ void LaptopFactory::ScoutBrocasting(LaptopInfo &laptop) {
   // track p1a and p1b messages
   while (true) {
     // definition of acceptor_stub:   std::map<int, ClientStub> acceptor_stub;
+    // send PaxosMsg to all acceptors
     for (auto iter = scout_acceptor_stub.begin(); iter != scout_acceptor_stub.end();) {
-      PaxosMsg paxosMsg = PaxosMsg(1);
-      paxosMsg.setProposalNumber(proposalNumber);
-      // send PaxosMsg to all acceptors
-      if (!iter->second.sendPaxosMsg(paxosMsg)) {
-        std::cout << "Failed to send PaxosMsg to Acceptor, Acceptor serverId: "<<iter->first<<std::endl;
+      PaxosMsg p1aMsg = PaxosMsg(1);
+      p1aMsg.setProposalNumber(proposalNumber);
+      // send PaxosMsg to acceptor
+      if (!iter->second.sendPaxosMsg(p1aMsg)) {
+        std::cout << "Prepare phase: Failed to send p1aMsg to Acceptor, Acceptor serverId: "<<iter->first<<std::endl;
+        int serverId = iter->first;
+        iter = scout_acceptor_stub.erase(iter); // already done iter++
+        commander_learner_stub.erase(serverId);
+        continue;
       } else {
         PaxosMsg p1bMsg;
         p1bMsg = iter->second.receivePaxosMsg();
@@ -289,8 +295,8 @@ void LaptopFactory::ScoutBrocasting(LaptopInfo &laptop) {
         } else {
           // do nothing
         }
+        ++iter;
       }
-      ++iter;
     }
     
     if (promisedNum <= numOfAcceptors/2) { 
@@ -324,6 +330,7 @@ void LaptopFactory::ScoutBrocasting(LaptopInfo &laptop) {
     int res = AcceptPhaseBrocasting(selfCommand);
 
     if (res == 1) { // accept
+       std::cout<<"brocasting self command ********"<<std::endl;
        CommanderBrocasting(selfCommand);
     } else if (res == 0) { // full reject
       // restart prepare phase
@@ -335,15 +342,20 @@ void LaptopFactory::ScoutBrocasting(LaptopInfo &laptop) {
       // our command will be proposed by peers
     } else {
       std::cout<<"undefined AcceptPhaseBrocasting() result"<<std::endl;
+      // it will  go to end the ScoutBrocasting() function
     }
   
   } else { // propose cmd from the system
     int res = AcceptPhaseBrocasting(cmd);
     if (res == 1) { // approved, collect majority's agree
+      std::cout<<"brocasting other's command ********"<<std::endl;
       CommanderBrocasting(cmd);
-    } else { // full reject or part reject
+    } else if (res==0 || res==-1){ // full reject or part reject
       // drop the cmd and restart prepare phase
       goto start_proposalNum_compete;
+    } else {
+      std::cout<<"undefined AcceptPhaseBrocasting() result"<<std::endl;
+      // it will  go to end the ScoutBrocasting() function
     }
   }
 
@@ -382,7 +394,11 @@ int LaptopFactory::AcceptPhaseBrocasting(Command cmd) {
     p2aMsg.setProposalNumber(proposalNumber);
     // send PaxosMsg to all acceptors
     if (!iter->second.sendPaxosMsg(p2aMsg)) {
-      std::cout << "Failed to send p2aMsg to Acceptor, Acceptor serverId: "<<iter->first<<std::endl;
+      std::cout << "Accept phase: Failed to send p2aMsg to Acceptor, Acceptor serverId: "<<iter->first<<std::endl;
+      int serverId = iter->first;
+      iter = scout_acceptor_stub.erase(iter);  // already done iter++;
+      commander_learner_stub.erase(serverId);
+      continue; // continue to sendPaxosMsg to next acceptor
     } else {
       PaxosMsg p2bMsg;
       p2bMsg = iter->second.receivePaxosMsg();
@@ -392,8 +408,9 @@ int LaptopFactory::AcceptPhaseBrocasting(Command cmd) {
       } else {
         // do nothing
       }
+      ++iter;
     }
-    ++iter;
+    
   }
   
   if (accept_number == 0) { // full reject
@@ -438,6 +455,10 @@ void LaptopFactory::CommanderBrocasting(Command cmd) {
     // send PaxosMsg (learn message) to all acceptors
     if (!iter->second.sendPaxosMsg(paxosMsg)) { // send failed
       std::cout << "Failed to send PaxosMsg to Learner "<<iter->first<<std::endl;
+      int serverId = iter->first;
+      iter = commander_learner_stub.erase(iter); // already done iter++
+      scout_acceptor_stub.erase(serverId);
+      continue;
     }
     ++iter;
   }
