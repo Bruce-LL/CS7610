@@ -14,20 +14,20 @@
 int generateCommandID(int serverID) {
     auto now = std::chrono::system_clock::now();
     auto epoch = now.time_since_epoch();
-    auto value = std::chrono::duration_cast<std::chrono::milliseconds>(epoch);
-    // Get the duration value in milliseconds
-    long long milliseconds = value.count();
+    auto value = std::chrono::duration_cast<std::chrono::microseconds>(epoch);
+    // Get the duration value in microseconds
+    long long microseconds = value.count();
 
     // Convert milliseconds to string
     std::ostringstream oss;
-    oss << milliseconds;
-    std::string milliseconds_str = oss.str();
+    oss << microseconds;
+    std::string microseconds_str = oss.str();
 
-    if (milliseconds_str.length() > 8) {
-        milliseconds_str = milliseconds_str.substr(milliseconds_str.length() - 8);
+    if (microseconds_str.length() > 8) {
+        microseconds_str = microseconds_str.substr(microseconds_str.length() - 8);
     }
-
-    return (10 + serverID) * 10000000 + std::stoi(milliseconds_str);
+    
+    return (10 + serverID) * 10000000 + std::stoi(microseconds_str);
 }
 
 
