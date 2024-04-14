@@ -65,8 +65,8 @@ private:
   std::mutex slot_out_lock;
   int slot_out = 1;  // the next decision Map slot to fill
 
-  std::mutex proposalMap_lock;
-  std::map<int, Command> proposalMap;
+  // std::mutex proposalMap_lock;
+  // std::map<int, Command> proposalMap;
   
   std::mutex decisionMap_lock;
   std::map<int, Command> decisionMap;
@@ -79,7 +79,7 @@ private:
   LogRequest CreateLogRequest(MapOp op);
   ServerConfig serverConfig;
 
-  void ScoutBrocasting(LaptopInfo& laptop);
+  int ScoutBrocasting(LaptopInfo& laptop);
   void CommanderBrocasting(Command cmd);
   int AcceptPhaseBrocasting(Command cmd);
   void Learn(Command cmd);

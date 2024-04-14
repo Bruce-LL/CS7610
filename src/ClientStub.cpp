@@ -73,10 +73,8 @@ ServerConfig ClientStub::receiveServerConfig() {
   if (socket.Recv(buffer.data(), messageSize, 0)) {
     serverConfig.Unmarshal(buffer.data());
   } else {
-    std::cout<<"failed to receive serverConfig..."<<"size: "<<messageSize<<std::endl;
+    // std::cout<<"failed to receive serverConfig..."<<"size: "<<messageSize<<std::endl;
   }
-  //std::cout<<"servres size: "<<serverConfig.getServers().size()<<std::endl;
-  //serverConfig.print();
   
   return serverConfig;
 }
