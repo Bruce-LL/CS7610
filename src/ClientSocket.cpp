@@ -32,7 +32,6 @@ int ClientSocket::Init(std::string ip, int port) {
 		return 0;
 	}
 	is_initialized_ = true;
-	std::cout<<"sock initialized, "<<"fd: "<<fd_<<std::endl;
 	return 1;
 }
 

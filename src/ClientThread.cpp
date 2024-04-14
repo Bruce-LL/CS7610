@@ -22,28 +22,31 @@ void ClientThreadClass::Orders() {
     laptop = stub.Order(request);
     timer.EndAndMerge();
 
+    if (laptop.GetAdminId() == -5) {
+      std::cout<<"Number of active Acceptors not enough. Paxos System not working..."<<std::endl;
+      break;  // end this customer
+    }
+
     // when !laptop.IsValid(), it means the costmer loses connection with current target server 
     if (!laptop.IsValid()) {
-      std::cout << "Invalid laptop, trying to reconnecting..., customer_id: " << customer_id << std::endl;
+      //std::cout << "Lost connection with server, trying to reconnecting..., customer_id: " << customer_id << std::endl;
       
-
       // try to connect to other servers in serverConfig
       for (const auto& pair : serverConfig.getServers()) {
         std::string ip = pair.second.getIpAdress();
         int port = pair.second.getPortNumber();
 
         stub = ClientStub();
-        std::cout<<"connecting to ip: "<<ip<<", port: "<<port<<", customer_id: "<<customer_id<<std::endl;
 
         // if failed to connect to this peer, try to connect to next one
         if (!stub.Init(ip, port)) {
-          std::cout << "Thread " << customer_id << " failed to connect" << std::endl;
+          // std::cout << "Thread " << customer_id << " failed to connect" << std::endl;
           continue;
         }
-        
+
         stub.Identify(0);
         serverConfig = stub.receiveServerConfig();
-        serverConfig.print();
+        // serverConfig.print();
         goto continue_outer;
       }
 
@@ -101,13 +104,12 @@ void ClientThreadClass::ThreadBody(std::string ip, int port, int id, int orders,
 
   // this will call while ((new_socket = socket.Accept())) in the serverMain
   if (!stub.Init(ip, port)) {
-    std::cout << "Thread " << customer_id << " failed to connect" << std::endl;
+    // std::cout << "Thread " << customer_id << " failed to connect" << std::endl;
     return;
   }
 
   stub.Identify(0);
   serverConfig = stub.receiveServerConfig();
-  serverConfig.print();
   if (request_type == 1) {
     Orders();
   } else if (request_type == 2) {
