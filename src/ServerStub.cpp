@@ -4,6 +4,8 @@
 
 #include <iostream>
 
+#include <vector>
+
 ServerStub::ServerStub() {}
 
 void ServerStub::Init(std::unique_ptr<ServerSocket> socket) {

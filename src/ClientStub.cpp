@@ -1,6 +1,8 @@
 #include "ClientStub.h"
 
 #include <arpa/inet.h>
+#include <cstring>
+#include <vector>
 #include <iostream>
 
 ClientStub::ClientStub() {}

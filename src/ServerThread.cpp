@@ -342,7 +342,7 @@ int LaptopFactory::ScoutBrocasting(LaptopInfo &laptop) {
     int res = AcceptPhaseBrocasting(selfCommand);
 
     if (res == 1) { // accept
-       std::cout<<"brocasting self command"<<std::endl;
+       // std::cout<<"brocasting self command"<<std::endl;
        CommanderBrocasting(selfCommand);
     } else if (res == 0) { // full reject
       // restart prepare phase
@@ -360,7 +360,7 @@ int LaptopFactory::ScoutBrocasting(LaptopInfo &laptop) {
   } else { // propose cmd from the system
     int res = AcceptPhaseBrocasting(cmd);
     if (res == 1) { // approved, collect majority's agree
-      std::cout<<"brocasting other's command"<<std::endl;
+      // std::cout<<"brocasting other's command"<<std::endl;
       CommanderBrocasting(cmd);
     } else if (res==0 || res==-1){ // full reject or part reject
       // drop the cmd and restart prepare phase
@@ -510,7 +510,7 @@ void LaptopFactory::ScoutThread(int id) {
     req->laptop.SetAdminId(id);
 
     if (paxosSignal==0) {
-      std::cout<<"paxosSignal = 0"<<std::endl;
+      // std::cout<<"paxosSignal = 0"<<std::endl;
       req->laptop.SetAdminId(-5); // use adminId = -5 as an signal telling the customer there is not enough active acceptors
     }
     

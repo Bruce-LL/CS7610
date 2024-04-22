@@ -5,6 +5,7 @@
 
 #include "Messages.h"
 #include "ServerSocket.h"
+#include <vector>
 
 class ServerStub {
 private:
